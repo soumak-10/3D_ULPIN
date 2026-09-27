@@ -1,0 +1,103 @@
+[project]
+name = "ulpin-api"
+version = "1.0.0"
+description = "3D ULPIN Generation and Vertical Property Mapping System — backend API"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+
+# Pins are lower bounds with an upper guard on the majors that have broken us
+# before. Exact versions live in the lockfile; this file states intent.
+dependencies = [
+    # --- Web ---------------------------------------------------------------
+    "fastapi>=0.115,<0.120",
+    "uvicorn[standard]>=0.32,<0.40",
+    "python-multipart>=0.0.18",           # form parsing for uploads
+
+    # --- Validation and settings -------------------------------------------
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "email-validator>=2.2",               # backs pydantic's EmailStr
+
+    # --- Database ----------------------------------------------------------
+    "SQLAlchemy[asyncio]>=2.0.36,<2.1",
+    "asyncpg>=0.30",                      # async driver, used by the app
+    "psycopg[binary]>=3.2",               # sync driver, used by Alembic
+    "GeoAlchemy2>=0.15",                  # PostGIS column types
+    "alembic>=1.14",
+
+    # --- Security ----------------------------------------------------------
+    "argon2-cffi>=23.1",                  # Argon2id password hashing
+    "PyJWT[crypto]>=2.9,<3",              # access tokens
+
+    # --- Runtime -----------------------------------------------------------
+    "anyio>=4.6",
+    "redis>=5.2",                         # rate limiting beyond one replica
+    "httpx>=0.28",                        # outbound calls and the test client
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-redis",
+    "faker>=33.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ===========================================================================
+# Tooling
+# ===========================================================================
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # bugbear
+    "C4",        # comprehensions
+    "SIM",       # simplify
+    "ASYNC",     # async correctness
+    "S",         # bandit
+    "ANN",       # annotations
+    "RUF",
+]
+ignore = [
+    "ANN401",    # Any is sometimes the honest annotation
+    "S101",      # assert is fine in tests
+    "B008",      # Depends() in a default is the FastAPI idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "S105", "S106"]
+"app/api/v1/endpoints/*" = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+disallow_untyped_decorators = false      # FastAPI's decorators are untyped
+
+[[tool.mypy.overrides]]
+module = ["geoalchemy2.*", "argon2.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q --strict-markers"

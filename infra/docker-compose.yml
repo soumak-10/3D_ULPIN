@@ -1,0 +1,150 @@
+# =============================================================================
+#  3D ULPIN Generation and Vertical Property Mapping System
+#  Development stack.
+#
+#  From the repository root:
+#      cp .env.example .env
+#      docker compose -f infra/docker-compose.yml --env-file .env up --build
+#
+#  Services: postgres (PostGIS + SFCGAL), redis, api (FastAPI), web (Next.js).
+#  `make dev` from the root does the same thing with less typing.
+# =============================================================================
+
+name: ulpin-3d
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 with PostGIS 3.4. SFCGAL is what the vertical model actually
+  # needs — ST_Volume, ST_IsSolid, ST_3DIntersection — and the plain `postgres`
+  # image has none of it, so the image tag is not interchangeable.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: ulpin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ulpin_db}
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres}
+      # Passed through to the bootstrap script so the application role ends up
+      # with the same password the API is configured with.
+      APP_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SEED_DATABASE: ${SEED_DATABASE:-true}
+      # Deterministic collation. Left to the host locale, two machines sort
+      # owner names differently and the trigram search ranks differently with
+      # them — a class of bug that only appears on someone else's laptop.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Read-only: the container must never be able to rewrite the schema it
+      # was built from.
+      - ../database:/sql:ro
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # `pg_isready` returns true while init scripts are still running, so the
+      # probe asks for a table the last script creates instead.
+      test:
+        [
+          "CMD-SHELL",
+          "psql -U ${POSTGRES_SUPERUSER:-postgres} -d ${POSTGRES_DB:-ulpin_db} -c 'SELECT 1 FROM ulpin.units LIMIT 1' >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Redis. Optional in development, required before running more than one API
+  # replica: without it the login rate limit is per-process, so N replicas
+  # permit N times the configured rate.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ulpin-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # FastAPI.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
+      target: ${API_TARGET:-development}
+    container_name: ulpin-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      DEBUG: ${DEBUG:-true}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — see .env.example}
+      ID_HASH_PEPPER: ${ID_HASH_PEPPER:-dev-pepper-change-me}
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-ulpin_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ulpin_db}
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-ulpin}
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      # Bind-mounted so `uvicorn --reload` sees edits. The production target
+      # copies the source in instead and mounts nothing.
+      - ../apps/api/app:/app/app:ro
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Next.js. Talks to the API by service name; the browser never does.
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      target: ${WEB_TARGET:-development}
+      args:
+        API_ORIGIN: http://api:8000
+    container_name: ulpin-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      API_ORIGIN: http://api:8000
+      NODE_ENV: ${NODE_ENV:-development}
+      WATCHPACK_POLLING: "true"   # bind mounts on Windows and macOS miss inotify
+    volumes:
+      - ../apps/web/src:/app/src
+      - ../apps/web/public:/app/public
+      # Anonymous volumes so the container's own install and build cache are not
+      # shadowed by whatever the host happens to have in those directories.
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  postgres-data:
+    name: ulpin-postgres-data

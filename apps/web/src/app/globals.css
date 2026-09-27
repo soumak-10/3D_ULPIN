@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* A restrained institutional palette. Saturated blues read as "bank" and
+       saturated saffron reads as "campaign"; a government register wants
+       neither, so the primary is a deep desaturated navy. */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 60% 26%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 217 60% 26%;
+
+    --radius: 0.5rem;
+
+    /* Status colours — the specification's Green / Yellow / Red.
+       Chosen at equal perceptual weight so none shouts over the others, and
+       darkened from the pure hues so white text meets 4.5:1 on all three.
+       Red is reserved for fraud alone. Nothing else in the UI may use it. */
+    --status-verified: 142 62% 30%;
+    --status-verified-fg: 0 0% 100%;
+    --status-pending: 38 84% 42%;
+    --status-pending-fg: 0 0% 100%;
+    --status-fraud: 0 72% 42%;
+    --status-fraud-fg: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
+    --card: 222 45% 11%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 45% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 213 70% 62%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 20%;
+    --input: 217 33% 22%;
+    --ring: 213 70% 62%;
+
+    --status-verified: 142 55% 45%;
+    --status-verified-fg: 0 0% 100%;
+    --status-pending: 38 90% 55%;
+    --status-pending-fg: 222 47% 11%;
+    --status-fraud: 0 70% 58%;
+    --status-fraud-fg: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Identifiers are read character by character and compared by eye against
+     paper. Tabular mono figures stop 0/O and 1/l collapsing. */
+  .ulpin {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+}

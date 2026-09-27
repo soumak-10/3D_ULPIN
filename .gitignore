@@ -1,0 +1,42 @@
+# --- Secrets -----------------------------------------------------------------
+# Only the .example files are tracked.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+infra/nginx/certs/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# --- Node --------------------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+
+# --- Editors and OS ----------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Local artefacts ---------------------------------------------------------
+*.log
+/tmp/
+*.dump
+*.sql.gz

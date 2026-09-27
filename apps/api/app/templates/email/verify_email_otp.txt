@@ -1,0 +1,16 @@
+Hello {name},
+
+Your ULPIN Registry verification code is:
+
+    {code}
+
+Enter it on the verification page to activate your account. The code is valid
+for {minutes} minutes and can be used once.
+
+If you did not create this account, you can ignore this message — the address
+will not be registered without the code above.
+
+--
+ULPIN Registry
+Department of Land Resources
+This is an automated message. Please do not reply.
