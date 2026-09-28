@@ -31,8 +31,14 @@ import type { ThreeDBuildingResponse, ThreeDUnitResponse } from "@/types/api";
  * volume there always describe the same unit.
  */
 
-const num = (v: number | null | undefined, digits = 2) =>
-  v === null || v === undefined ? "—" : v.toFixed(digits);
+// The 3D endpoints serialise their NUMERIC columns (latitude, longitude and the
+// x/y/z coordinates) as JSON strings, so this coerces before formatting: calling
+// .toFixed on a string throws and would take the whole card down.
+const num = (v: number | string | null | undefined, digits = 2) => {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n.toFixed(digits) : "—";
+};
 
 /** The human-readable record encoded into the QR. Labelled lines rather than
  *  JSON so any phone camera shows a legible property card, not a blob. */

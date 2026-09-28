@@ -12,6 +12,15 @@
  */
 
 import { api } from "./client";
+import {
+  normalizeAlert,
+  normalizeAlertPage,
+  normalizeBuilding,
+  normalizeBuildingPage,
+  normalizeFloor,
+  normalizeUnit,
+  normalizeUnitPage,
+} from "./normalize";
 import type {
   AlertResponse,
   BuildingResponse,
@@ -120,9 +129,9 @@ export const buildings = {
       state_code?: string;
       status?: string;
     } = {},
-  ) => api.get<Page<BuildingResponse>>("/buildings", { query: params }),
+  ) => api.get<Page<BuildingResponse>>("/buildings", { query: params }).then(normalizeBuildingPage),
 
-  get: (id: string) => api.get<BuildingResponse>(`/buildings/${id}`),
+  get: (id: string) => api.get<BuildingResponse>(`/buildings/${id}`).then(normalizeBuilding),
 
   create: (body: Record<string, unknown>) => api.post<BuildingResponse>("/buildings", body),
 
@@ -134,7 +143,8 @@ export const buildings = {
 
   remove: (id: string) => api.delete<MessageResponse>(`/buildings/${id}`),
 
-  floors: (id: string) => api.get<FloorResponse[]>(`/buildings/${id}/floors`),
+  floors: (id: string) =>
+    api.get<FloorResponse[]>(`/buildings/${id}/floors`).then((rows) => rows.map(normalizeFloor)),
 
   createFloor: (id: string, body: Record<string, unknown>) =>
     api.post<FloorResponse>(`/buildings/${id}/floors`, body),
@@ -143,7 +153,7 @@ export const buildings = {
     api.patch<FloorResponse>(`/buildings/floors/${floorId}`, body),
 
   units: (id: string, params: { page?: number; page_size?: number } = {}) =>
-    api.get<Page<UnitResponse>>(`/buildings/${id}/units`, { query: params }),
+    api.get<Page<UnitResponse>>(`/buildings/${id}/units`, { query: params }).then(normalizeUnitPage),
 
   createUnit: (id: string, body: Record<string, unknown>) =>
     api.post<UnitResponse>(`/buildings/${id}/units`, body),
@@ -164,9 +174,9 @@ export const units = {
       occupancy_status?: string;
       verification_outcome?: string;
     } = {},
-  ) => api.get<Page<UnitResponse>>("/units", { query: params }),
+  ) => api.get<Page<UnitResponse>>("/units", { query: params }).then(normalizeUnitPage),
 
-  get: (id: string) => api.get<UnitResponse>(`/units/${id}`),
+  get: (id: string) => api.get<UnitResponse>(`/units/${id}`).then(normalizeUnit),
 
   update: (id: string, body: Record<string, unknown>) =>
     api.patch<UnitResponse>(`/units/${id}`, body),
@@ -329,9 +339,9 @@ export const fraud = {
       building_id?: string;
       q?: string;
     } = {},
-  ) => api.get<Page<AlertResponse>>("/fraud/alerts", { query: params }),
+  ) => api.get<Page<AlertResponse>>("/fraud/alerts", { query: params }).then(normalizeAlertPage),
 
-  alert: (id: string) => api.get<AlertResponse>(`/fraud/alerts/${id}`),
+  alert: (id: string) => api.get<AlertResponse>(`/fraud/alerts/${id}`).then(normalizeAlert),
 
   assign: (id: string, assignee_id: string) =>
     api.post<AlertResponse>(`/fraud/alerts/${id}/assign`, { assignee_id }),
