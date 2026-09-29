@@ -6,7 +6,7 @@
 
 **India's 14-character land-parcel identifier, extended into the third dimension.**
 
-**FIXING SOME BUGS🐛**
+**🛑FIXING SOME BUGS🐛🛑**
 
 Next.js 15 · FastAPI · PostgreSQL + PostGIS · Three.js
 
